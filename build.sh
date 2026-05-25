@@ -261,16 +261,21 @@ fi
 
 # if [[ ! -f .config ]]; then  # We need to update the config file even if .config exists from a prev. cached build
 if [[ -f config ]]; then
-    echo -e "\e[1;34m[*]\e[0m Moving 'config' -> '.config'"
-    mv config .config
+    echo -e "\e[1;34m[*]\e[0m Copying 'config' -> '.config'"
+    cp config .config
+elif [[ -f .config ]]; then
+    echo -e "\e[1;34m[*]\e[0m Using existing '.config' file"
 else
-    echo -e "\e[1;31mERROR:\e[0m No .config found." >&2
+    echo -e "\e[1;31mERROR:\e[0m No config or .config found." >&2
     exit 1
 fi
 
-ensure_extra_firmware_blob "${REQUIRED_PS4_SD8797_FW}"
-require_custom_firmware_blob "${REQUIRED_PS4_SD8797_FW}"
-validate_extra_firmware_blob "${REQUIRED_PS4_SD8797_FW}"
+if [[ -f "${FIRMWARE_DIR}/${REQUIRED_PS4_SD8797_FW}" ]]; then
+    ensure_extra_firmware_blob "${REQUIRED_PS4_SD8797_FW}"
+    validate_extra_firmware_blob "${REQUIRED_PS4_SD8797_FW}"
+else
+    echo -e "\e[1;33m[*]\e[0m Optional PS4 custom firmware sd8797_uapsta.bin is missing; skipping embedding for Torus 1/Aeolia (Belize models do not need this)."
+fi
 echo -e "\e[1;34m[*]\e[0m Setting CONFIG_EXTRA_FIRMWARE_DIR=${FIRMWARE_DIR}"
 scripts/config --set-str CONFIG_EXTRA_FIRMWARE_DIR "${FIRMWARE_DIR}"
 
@@ -625,7 +630,9 @@ if [[ "$DO_BUILD" == "1" ]]; then
     echo -e "\e[1;34m[*]\e[0m Running olddefconfig..."
     make "${MAKE_OPTS[@]}" olddefconfig
 
-    validate_extra_firmware_blob "${REQUIRED_PS4_SD8797_FW}"
+    if [[ -f "${FIRMWARE_DIR}/${REQUIRED_PS4_SD8797_FW}" ]]; then
+        validate_extra_firmware_blob "${REQUIRED_PS4_SD8797_FW}"
+    fi
 
     echo -e "\e[1;34m[*]\e[0m Running prepare..."
     make "${MAKE_OPTS[@]}" prepare
